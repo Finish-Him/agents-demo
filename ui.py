@@ -91,10 +91,6 @@ def build_ui() -> gr.Blocks:
 
     with gr.Blocks(
         title="Agents Demo — Factored Interview",
-        theme=gr.themes.Soft(
-            primary_hue="indigo",
-            secondary_hue="purple",
-        ),
     ) as demo:
         gr.Markdown(
             "# 🤖 Agents Demo — Factored.ai Interview\n"
@@ -111,7 +107,6 @@ def build_ui() -> gr.Blocks:
 
                 chatbot = gr.Chatbot(
                     height=450,
-                    type="messages",
                     show_copy_button=True,
                 )
                 msg = gr.Textbox(
@@ -124,8 +119,7 @@ def build_ui() -> gr.Blocks:
 
                 def respond(message, history, thread_id, _chat_fn=chat_fn):
                     response = _chat_fn(message, history, thread_id)
-                    history.append({"role": "user", "content": message})
-                    history.append({"role": "assistant", "content": response})
+                    history.append((message, response))
                     return "", history
 
                 msg.submit(
