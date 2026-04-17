@@ -1,0 +1,9 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "prometheus": "./prometheus/agent.py:graph",
+    "arquimedes": "./arquimedes/agent.py:graph",
+    "atlas": "./atlas/agent.py:graph"
+  },
+  "env": ".env"
+}

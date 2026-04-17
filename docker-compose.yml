@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  agents-demo:
+    build: .
+    ports:
+      - "7860:7860"
+    env_file:
+      - .env
+    volumes:
+      - agent_data:/app/data
+    restart: unless-stopped
+
+  agents-api:
+    build: .
+    command: ["python", "api.py"]
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - agent_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  agent_data:
