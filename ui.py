@@ -107,7 +107,6 @@ def build_ui() -> gr.Blocks:
 
                 chatbot = gr.Chatbot(
                     height=450,
-                    show_copy_button=True,
                 )
                 msg = gr.Textbox(
                     placeholder="Type your message...",
