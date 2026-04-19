@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Highlight.js dark theme overrides */
+pre code.hljs {
+  background: #0d1117 !important;
+  border-radius: 0.5rem;
+  padding: 1rem !important;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+code:not(pre code) {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  padding: 0.15em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+}
+
+/* Markdown content styling */
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  color: #f1f5f9;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+}
+.prose-chat h1 { font-size: 1.25rem; }
+.prose-chat h2 { font-size: 1.125rem; }
+.prose-chat h3 { font-size: 1rem; }
+
+.prose-chat p {
+  margin-bottom: 0.75em;
+  line-height: 1.7;
+}
+
+.prose-chat ul,
+.prose-chat ol {
+  margin-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+.prose-chat li {
+  margin-bottom: 0.25em;
+}
+
+.prose-chat blockquote {
+  border-left: 3px solid #6366f1;
+  padding-left: 1em;
+  color: #94a3b8;
+  margin: 0.75em 0;
+}
+
+.prose-chat a {
+  color: #818cf8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-chat table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+}
+.prose-chat th,
+.prose-chat td {
+  border: 1px solid #1e293b;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+.prose-chat th {
+  background: #1e293b;
+  font-weight: 600;
+}
+
+.prose-chat hr {
+  border-color: #1e293b;
+  margin: 1em 0;
+}

@@ -10,3 +10,6 @@ dist/
 *.egg-info/
 .mypy_cache/
 .ruff_cache/
+node_modules/
+frontend/dist/
+.pytest_cache/

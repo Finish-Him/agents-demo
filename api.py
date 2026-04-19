@@ -2,10 +2,13 @@
 
 import json
 import uuid
+from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
@@ -56,6 +59,7 @@ AGENTS = {
 
 # Models available in the UI selector
 AVAILABLE_MODELS = [
+    {"id": "qwen/qwen3-235b-a22b", "name": "Qwen3 235B (OpenRouter)", "speed": "fast"},
     {"id": "deepseek/deepseek-chat-v3-0324", "name": "DeepSeek V3 (OpenRouter)", "speed": "medium"},
     {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Google)", "speed": "fast"},
     {"id": "gpt-4o-mini", "name": "GPT-4o Mini (OpenAI)", "speed": "fast"},
@@ -177,14 +181,43 @@ async def chat_stream(agent_name: str, req: ChatRequest):
             config=config,
             version="v2",
         ):
-            if event["event"] == "on_chat_model_stream":
+            kind = event["event"]
+            if kind == "on_chat_model_stream":
                 token = event["data"]["chunk"].content
                 if token:
                     yield {"event": "token", "data": token}
+            elif kind == "on_tool_start":
+                tool_name = event.get("name", "unknown")
+                yield {"event": "tool_start", "data": tool_name}
+            elif kind == "on_tool_end":
+                tool_name = event.get("name", "unknown")
+                yield {"event": "tool_end", "data": tool_name}
 
         yield {"event": "done", "data": ""}
 
     return EventSourceResponse(event_generator())
+
+
+# ── Serve React frontend (static files + SPA fallback) ────────────────
+FRONTEND_DIR = Path(__file__).parent / "frontend" / "dist"
+
+# Paths that should NOT be caught by the SPA fallback
+_API_PREFIXES = {"health", "agents", "models", "chat", "docs", "redoc", "openapi.json"}
+
+if FRONTEND_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(request: Request, full_path: str):
+        # Never intercept FastAPI's own routes
+        first_segment = full_path.split("/")[0] if full_path else ""
+        if first_segment in _API_PREFIXES:
+            raise HTTPException(status_code=404, detail="Not found")
+        # Serve static file if it exists, otherwise index.html (SPA)
+        file = FRONTEND_DIR / full_path
+        if file.is_file():
+            return FileResponse(file)
+        return FileResponse(FRONTEND_DIR / "index.html")
 
 
 if __name__ == "__main__":
