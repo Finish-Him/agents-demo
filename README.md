@@ -32,12 +32,21 @@ agents-demo/
 │   ├── agent.py         # LangGraph graph (3 nodes, ReAct + API tools)
 │   ├── tools.py         # 4 tools (GitHub API, HF API, project analyzer)
 │   └── prompts.py       # System prompt
-├── api.py               # FastAPI server (REST endpoints)
+├── frontend/            # React + Vite SPA (served by FastAPI in prod)
+│   ├── src/             # Components, stores, API client
+│   └── package.json
+├── docs/                # Extended documentation
+│   ├── architecture.md  # System design + request flow
+│   ├── agents.md        # Per-agent reference
+│   └── api.md           # REST + SSE endpoint reference
+├── api.py               # FastAPI server (REST + SSE streaming)
 ├── ui.py                # Gradio web UI (3 tabs)
 ├── langgraph.json       # LangGraph Studio config
 ├── docker-compose.yml   # Docker deployment
 └── Dockerfile
 ```
+
+See [docs/](docs/) for architecture, per-agent reference, and full API docs.
 
 ## Tech Stack
 
