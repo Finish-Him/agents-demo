@@ -1,14 +1,17 @@
 """FastAPI server exposing all 3 agents via REST + SSE streaming."""
 
+import json
 import uuid
-from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sse_starlette.sse import EventSourceResponse
 
 load_dotenv()
+
+from shared.llm import DEFAULT_MODEL
 
 # Import agents (triggers graph compilation)
 from prometheus.agent import graph as prometheus_graph
@@ -51,11 +54,20 @@ AGENTS = {
     },
 }
 
+# Models available in the UI selector
+AVAILABLE_MODELS = [
+    {"id": "deepseek/deepseek-chat-v3-0324", "name": "DeepSeek V3 (OpenRouter)", "speed": "medium"},
+    {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Google)", "speed": "fast"},
+    {"id": "gpt-4o-mini", "name": "GPT-4o Mini (OpenAI)", "speed": "fast"},
+    {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4 (Anthropic)", "speed": "medium"},
+]
+
 
 class ChatRequest(BaseModel):
     message: str
     thread_id: str | None = None
     user_id: str = "default-user"
+    model_name: str | None = None
 
 
 class ChatResponse(BaseModel):
@@ -66,8 +78,8 @@ class ChatResponse(BaseModel):
 
 app = FastAPI(
     title="Agents Demo — Factored Interview",
-    description="3 LangGraph agents: Prometheus (DETRAN), Arquimedes (Teaching), Atlas (Stack)",
-    version="1.0.0",
+    description="3 LangGraph agents: Prometheus, Arquimedes, Atlas — with SSE streaming",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -79,12 +91,12 @@ app.add_middleware(
 
 
 @app.get("/health")
-def health():
+async def health():
     return {"status": "ok", "agents": list(AGENTS.keys())}
 
 
 @app.get("/agents")
-def list_agents():
+async def list_agents():
     return {
         name: {
             "name": info["name"],
@@ -96,8 +108,14 @@ def list_agents():
     }
 
 
+@app.get("/models")
+async def list_models():
+    return {"default": DEFAULT_MODEL, "available": AVAILABLE_MODELS}
+
+
+# ── Blocking endpoint (backwards-compatible) ──────────────────────────
 @app.post("/chat/{agent_name}", response_model=ChatResponse)
-def chat(agent_name: str, req: ChatRequest):
+async def chat(agent_name: str, req: ChatRequest):
     if agent_name not in AGENTS:
         raise HTTPException(
             status_code=404,
@@ -112,10 +130,11 @@ def chat(agent_name: str, req: ChatRequest):
         "configurable": {
             "thread_id": thread_id,
             "user_id": req.user_id,
+            "model_name": req.model_name or DEFAULT_MODEL,
         }
     }
 
-    result = graph.invoke(
+    result = await graph.ainvoke(
         {"messages": [("user", req.message)]},
         config=config,
     )
@@ -126,6 +145,46 @@ def chat(agent_name: str, req: ChatRequest):
         thread_id=thread_id,
         agent=agent_name,
     )
+
+
+# ── SSE streaming endpoint ────────────────────────────────────────────
+@app.post("/chat/{agent_name}/stream")
+async def chat_stream(agent_name: str, req: ChatRequest):
+    if agent_name not in AGENTS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Agent '{agent_name}' not found. Available: {list(AGENTS.keys())}",
+        )
+
+    agent_info = AGENTS[agent_name]
+    graph = agent_info["graph"]
+    thread_id = req.thread_id or str(uuid.uuid4())
+
+    config = {
+        "configurable": {
+            "thread_id": thread_id,
+            "user_id": req.user_id,
+            "model_name": req.model_name or DEFAULT_MODEL,
+        }
+    }
+
+    async def event_generator():
+        # Send thread_id as first event
+        yield {"event": "metadata", "data": json.dumps({"thread_id": thread_id, "agent": agent_name})}
+
+        async for event in graph.astream_events(
+            {"messages": [("user", req.message)]},
+            config=config,
+            version="v2",
+        ):
+            if event["event"] == "on_chat_model_stream":
+                token = event["data"]["chunk"].content
+                if token:
+                    yield {"event": "token", "data": token}
+
+        yield {"event": "done", "data": ""}
+
+    return EventSourceResponse(event_generator())
 
 
 if __name__ == "__main__":

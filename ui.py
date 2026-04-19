@@ -1,4 +1,7 @@
-"""Gradio Web UI — 3 tabs for Prometheus, Arquimedes, and Atlas agents."""
+"""Gradio Web UI — 3 tabs for Prometheus, Arquimedes, and Atlas agents.
+
+Features: token-by-token streaming, model selector, conversation memory.
+"""
 
 import uuid
 
@@ -10,6 +13,7 @@ load_dotenv()
 from prometheus.agent import graph as prometheus_graph
 from arquimedes.agent import graph as arquimedes_graph
 from atlas.agent import graph as atlas_graph
+from shared.llm import DEFAULT_MODEL
 
 AGENTS = {
     "prometheus": {
@@ -59,12 +63,19 @@ AGENTS = {
     },
 }
 
+MODEL_CHOICES = [
+    ("DeepSeek V3 (OpenRouter)", "deepseek/deepseek-chat-v3-0324"),
+    ("Gemini 2.0 Flash (Google) ⚡", "gemini-2.0-flash"),
+    ("GPT-4o Mini (OpenAI) ⚡", "gpt-4o-mini"),
+    ("Claude Sonnet 4 (Anthropic)", "claude-sonnet-4-20250514"),
+]
 
-def create_chat_fn(agent_key: str):
-    """Create a chat function for a specific agent."""
+
+def create_stream_fn(agent_key: str):
+    """Create an async streaming chat function for a specific agent."""
     graph = AGENTS[agent_key]["graph"]
 
-    def chat_fn(message: str, history: list, thread_id: str):
+    async def stream_fn(message: str, history: list, thread_id: str, model_name: str):
         if not thread_id:
             thread_id = str(uuid.uuid4())
 
@@ -72,18 +83,24 @@ def create_chat_fn(agent_key: str):
             "configurable": {
                 "thread_id": thread_id,
                 "user_id": "demo-user",
+                "model_name": model_name or DEFAULT_MODEL,
             }
         }
 
-        result = graph.invoke(
+        # Stream tokens as they arrive
+        partial = ""
+        async for event in graph.astream_events(
             {"messages": [("user", message)]},
             config=config,
-        )
+            version="v2",
+        ):
+            if event["event"] == "on_chat_model_stream":
+                token = event["data"]["chunk"].content
+                if token:
+                    partial += token
+                    yield partial
 
-        ai_message = result["messages"][-1]
-        return ai_message.content
-
-    return chat_fn
+    return stream_fn
 
 
 def build_ui() -> gr.Blocks:
@@ -103,6 +120,15 @@ def build_ui() -> gr.Blocks:
             "**Built by Moisés Costa** | LangGraph + LangChain + LangSmith + OpenRouter"
         )
 
+        # Global model selector
+        model_dropdown = gr.Dropdown(
+            choices=MODEL_CHOICES,
+            value=DEFAULT_MODEL,
+            label="🧠 Model",
+            info="⚡ = fast (1-3s) | others = smart (5-15s)",
+            interactive=True,
+        )
+
         for agent_key, agent_info in AGENTS.items():
             with gr.Tab(agent_info["title"]):
                 gr.Markdown(f"### {agent_info['title']}\n{agent_info['description']}")
@@ -120,17 +146,18 @@ def build_ui() -> gr.Blocks:
                     lines=1,
                 )
 
-                chat_fn = create_chat_fn(agent_key)
+                stream_fn = create_stream_fn(agent_key)
 
-                def respond(message, history, thread_id, _chat_fn=chat_fn):
-                    response = _chat_fn(message, history, thread_id)
+                async def respond(message, history, thread_id, model_name, _stream_fn=stream_fn):
                     history.append({"role": "user", "content": message})
-                    history.append({"role": "assistant", "content": response})
-                    return "", history
+                    history.append({"role": "assistant", "content": ""})
+                    async for partial in _stream_fn(message, history, thread_id, model_name):
+                        history[-1]["content"] = partial
+                        yield "", history
 
                 msg.submit(
                     respond,
-                    inputs=[msg, chatbot, thread_state],
+                    inputs=[msg, chatbot, thread_state, model_dropdown],
                     outputs=[msg, chatbot],
                 )
 
