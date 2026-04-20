@@ -36,10 +36,20 @@ def assistant(state: State, config: RunnableConfig, store: BaseStore):
     """Invoke LLM with tools via an LCEL chain; inject student profile from Store."""
     conf = Configuration.from_runnable_config(config)
 
-    # Retrieve student profile from Store (prefix scan; Phase 3 will switch to semantic).
+    # Retrieve student profile from Store. When the store supports semantic
+    # search (SemanticStore), query it with the latest user message so only
+    # relevant facts are injected. Fall back to prefix scan for InMemoryStore.
     user_id = conf.user_id
     namespace = ("student_profile", user_id)
-    existing = store.search(namespace)
+    last_user = ""
+    for m in reversed(state["messages"]):
+        if getattr(m, "type", None) == "human":
+            last_user = getattr(m, "content", "") or ""
+            break
+    try:
+        existing = store.search(namespace, query=last_user or None, limit=5)
+    except TypeError:
+        existing = store.search(namespace)
     profile_ctx = "\n".join(m.value.get("content", "") for m in existing)
 
     summary = state.get("summary", "")
