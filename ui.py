@@ -33,17 +33,17 @@ AGENTS = {
     },
     "arquimedes": {
         "graph": arquimedes_graph,
-        "title": "📚 Archimedes — AI Tutor",
+        "title": "📚 Arquimedes — Tutor de Matemática para ML",
         "description": (
-            "Adaptive tutor that teaches ML, deep learning, Python, and LLM agents "
-            "at your level. Assesses knowledge, generates exercises, explains with "
-            "analogies, and tracks your progress."
+            "Tutor adaptativo de álgebra linear, cálculo, probabilidade e "
+            "estatística — com RAG sobre Strang/Deisenroth/OpenStax, "
+            "derivações passo a passo via SymPy e solver fine-tuned com LoRA."
         ),
         "examples": [
-            "I want to learn machine learning from scratch.",
-            "Explain the transformer attention mechanism with a simple analogy.",
-            "Generate an intermediate exercise on gradient descent.",
-            "What resources do you recommend for learning about LLM agents?",
+            "Explique autovetores com uma analogia geométrica e cite o livro-texto.",
+            "Derive passo a passo o gradiente da função de perda MSE.",
+            "Exercício intermediário de Teorema de Bayes — depois corrija minha resposta.",
+            "Qual a diferença entre MLE e MAP na estimação?",
         ],
     },
     "atlas": {

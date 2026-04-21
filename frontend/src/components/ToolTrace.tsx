@@ -1,10 +1,14 @@
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/cn';
 import type { ToolInvocation } from '@/stores/useChatStore';
 import {
   BookOpen,
   Brain,
+  Calculator,
+  Cpu,
   GraduationCap,
   Library,
+  LineChart,
   Sigma,
   Target,
   Wrench,
@@ -22,6 +26,9 @@ const TOOL_ICON: Record<string, ReactNode> = {
   find_resources: <Library className="w-3 h-3" />,
   search_knowledge_base: <BookOpen className="w-3 h-3" />,
   step_by_step_derive: <Sigma className="w-3 h-3" />,
+  solve_symbolic: <Calculator className="w-3 h-3" />,
+  plot_function: <LineChart className="w-3 h-3" />,
+  solve_with_finetuned: <Cpu className="w-3 h-3" />,
 };
 
 const TOOL_COLOR: Record<string, string> = {
@@ -31,6 +38,9 @@ const TOOL_COLOR: Record<string, string> = {
   find_resources: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
   search_knowledge_base: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
   step_by_step_derive: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
+  solve_symbolic: 'text-lime-400 bg-lime-500/10 border-lime-500/20',
+  plot_function: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+  solve_with_finetuned: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
 };
 
 function formatDuration(ms: number | undefined): string {
@@ -47,9 +57,12 @@ export function ToolTrace({ calls }: ToolTraceProps) {
         const dur = c.endedAt ? c.endedAt - c.startedAt : undefined;
         const pending = c.endedAt === undefined;
         return (
-          <span
+          <motion.span
             key={i}
-            title={pending ? 'running…' : `ran in ${formatDuration(dur)}`}
+            initial={{ opacity: 0, scale: 0.85, y: 2 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            title={pending ? 'executando…' : `rodou em ${formatDuration(dur)}`}
             className={cn(
               'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono border',
               TOOL_COLOR[c.name] ??
@@ -62,7 +75,7 @@ export function ToolTrace({ calls }: ToolTraceProps) {
             {dur !== undefined && (
               <span className="opacity-60">· {formatDuration(dur)}</span>
             )}
-          </span>
+          </motion.span>
         );
       })}
     </div>

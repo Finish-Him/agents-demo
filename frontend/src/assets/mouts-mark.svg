@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 40" fill="none" aria-label="Mouts IT">
+  <text x="6" y="28" font-family="Inter, sans-serif" font-size="22" font-weight="700" letter-spacing="2" fill="#10b981">
+    MOUTS
+  </text>
+  <circle cx="118" cy="20" r="4" fill="#34d399"/>
+  <circle cx="118" cy="20" r="7" fill="#10b981" opacity="0.25"/>
+  <text x="130" y="25" font-family="Inter, sans-serif" font-size="10" font-weight="500" fill="#94a3b8">
+    IT
+  </text>
+</svg>

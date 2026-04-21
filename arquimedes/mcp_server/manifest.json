@@ -1,0 +1,24 @@
+{
+  "name": "arquimedes",
+  "version": "1.0.0",
+  "description": "Math-for-ML tutor tools (LangChain + SymPy + ChromaDB RAG + fine-tuned solver) exposed via MCP.",
+  "author": "Moises Alves",
+  "homepage": "https://github.com/Finish-Him/agents-demo",
+  "license": "MIT",
+  "transport": "stdio",
+  "command": {
+    "run": "python -m arquimedes.mcp_server",
+    "cwd": "<absolute path to agents-demo repo>"
+  },
+  "tools": [
+    "assess_level",
+    "generate_exercise",
+    "explain_concept",
+    "find_resources",
+    "search_knowledge_base",
+    "solve_symbolic",
+    "plot_function",
+    "step_by_step_derive",
+    "solve_with_finetuned"
+  ]
+}

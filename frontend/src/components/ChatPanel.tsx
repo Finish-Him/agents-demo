@@ -1,12 +1,15 @@
 import { useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useChatStore } from '@/stores/useChatStore';
 import { ChatMessage } from './ChatMessage';
 import { WelcomeScreen } from './WelcomeScreen';
+import { HeroArquimedes } from './HeroArquimedes';
 import { ToolCallBadge } from './ToolCallBadge';
 import { cn } from '@/lib/cn';
 
 export function ChatPanel() {
   const messages = useChatStore((s) => s.messages);
+  const activeAgent = useChatStore((s) => s.activeAgent);
   const isStreaming = useChatStore((s) => s.isStreaming);
   const activeTool = useChatStore((s) => s.activeTool);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -16,15 +19,26 @@ export function ChatPanel() {
   }, [messages, activeTool]);
 
   if (messages.length === 0) {
-    return <WelcomeScreen />;
+    return activeAgent === 'arquimedes' ? <HeroArquimedes /> : <WelcomeScreen />;
   }
 
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-1">
-        {messages.map((msg) => (
-          <ChatMessage key={msg.id} message={msg} />
-        ))}
+        <AnimatePresence initial={false}>
+          {messages.map((msg) => (
+            <motion.div
+              key={msg.id}
+              layout
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+            >
+              <ChatMessage message={msg} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {/* Tool call indicator */}
         {activeTool && <ToolCallBadge tool={activeTool} />}

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" fill="none" aria-label="Arquimedes lever motif">
+  <!-- Ground -->
+  <line x1="12" y1="168" x2="308" y2="168" stroke="#334155" stroke-width="1.5" stroke-dasharray="3 5" />
+
+  <!-- Fulcrum (triangle) -->
+  <polygon points="158,168 182,168 170,140" fill="#6366f1" opacity="0.85"/>
+  <polygon points="161,168 179,168 170,144" fill="#818cf8"/>
+
+  <!-- Lever (beam) -->
+  <rect x="28" y="128" width="284" height="6" rx="3" transform="rotate(-8 170 131)" fill="url(#beamGrad)"/>
+
+  <!-- Left weight (world) -->
+  <circle cx="58" cy="108" r="22" fill="#10b981" opacity="0.18"/>
+  <circle cx="58" cy="108" r="14" fill="#10b981" opacity="0.55"/>
+  <text x="58" y="113" font-size="14" text-anchor="middle" fill="#ecfdf5" font-family="'Cormorant Garamond', serif" font-weight="600">M</text>
+
+  <!-- Right handle -->
+  <circle cx="288" cy="142" r="5" fill="#f59e0b"/>
+  <circle cx="288" cy="142" r="10" fill="#f59e0b" opacity="0.25"/>
+
+  <!-- Equation floating above -->
+  <g transform="translate(0,0)">
+    <text x="160" y="40" font-size="20" text-anchor="middle" font-family="'Cormorant Garamond', serif" font-style="italic" fill="#f1f5f9">
+      F · d₁ = W · d₂
+    </text>
+    <text x="160" y="64" font-size="11" text-anchor="middle" font-family="Inter, sans-serif" fill="#94a3b8">
+      "Dê-me uma alavanca e moverei o mundo."
+    </text>
+  </g>
+
+  <!-- Sparkles -->
+  <g opacity="0.8">
+    <circle cx="240" cy="30" r="1.8" fill="#fbbf24"/>
+    <circle cx="100" cy="52" r="1.2" fill="#818cf8"/>
+    <circle cx="280" cy="78" r="1.4" fill="#34d399"/>
+    <circle cx="42" cy="156" r="1.2" fill="#f59e0b"/>
+  </g>
+
+  <defs>
+    <linearGradient id="beamGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#818cf8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+</svg>

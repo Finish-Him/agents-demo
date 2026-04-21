@@ -60,7 +60,12 @@ class TestAgentsEndpoint:
         resp = client.get("/agents")
         prometheus = resp.json()["prometheus"]
         assert prometheus["name"] == "Prometheus"
-        assert "governance" in prometheus["description"].lower() or "privacy" in prometheus["description"].lower()
+        desc = prometheus["description"].lower()
+        # Accept either EN or PT phrasing — copy may be localised.
+        assert any(
+            kw in desc
+            for kw in ("governance", "governança", "privacy", "privacidade", "compliance", "gdpr")
+        )
 
 
 class TestModelsEndpoint:

@@ -13,9 +13,9 @@ public interface; backend is selected via env var.
 from __future__ import annotations
 
 import os
-import uuid
-from dataclasses import dataclass
 from typing import Any, Iterable
+
+from shared.store_types import StoreRecord, namespace_key as _ns
 
 try:  # pragma: no cover - import guard
     import chromadb
@@ -23,19 +23,6 @@ try:  # pragma: no cover - import guard
     _CHROMA_AVAILABLE = True
 except Exception:  # pragma: no cover
     _CHROMA_AVAILABLE = False
-
-
-@dataclass
-class StoreRecord:
-    """Lightweight object shaped like langgraph.store.base.Item for our callers."""
-
-    namespace: tuple[str, ...]
-    key: str
-    value: dict[str, Any]
-
-
-def _ns(namespace: tuple[str, ...] | list[str]) -> str:
-    return "::".join(namespace)
 
 
 class SemanticStore:

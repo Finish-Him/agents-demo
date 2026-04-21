@@ -51,7 +51,7 @@ export function ChatInput() {
             value={text}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Send a message..."
+            placeholder="Pergunte algo de matemática para ML…"
             rows={1}
             className={cn(
               'flex-1 resize-none bg-transparent text-sm text-text-primary',
@@ -68,7 +68,7 @@ export function ChatInput() {
                 'bg-red-500/20 text-red-400 hover:bg-red-500/30',
                 'transition-colors',
               )}
-              title="Stop generating"
+              title="Interromper resposta"
             >
               <Square className="w-4 h-4" />
             </button>
@@ -83,7 +83,7 @@ export function ChatInput() {
                   ? 'bg-accent text-white hover:bg-accent-hover'
                   : 'bg-surface-hover text-text-muted cursor-not-allowed',
               )}
-              title="Send message"
+              title="Enviar"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -91,7 +91,9 @@ export function ChatInput() {
         </div>
 
         <p className="text-[10px] text-text-muted text-center mt-2">
-          Powered by LangGraph + OpenRouter — Built by Moises Alves for Factored.ai
+          LangGraph · FastAPI · RAG · MCP · LoRA — entrevista técnica{' '}
+          <span className="text-mouts">Mouts IT</span> ×{' '}
+          <span className="text-ambev">AmBev</span>
         </p>
       </div>
     </div>

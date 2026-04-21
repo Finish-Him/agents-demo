@@ -25,35 +25,35 @@ AGENTS = {
     "prometheus": {
         "graph": prometheus_graph,
         "name": "Prometheus",
-        "description": "AI governance and data-privacy compliance specialist — GDPR, CCPA, EU AI Act, NIST AI RMF.",
-        "lang": "en",
+        "description": "Especialista em governança de IA e privacidade — GDPR, CCPA, EU AI Act, NIST AI RMF.",
+        "lang": "pt-BR",
         "examples": [
-            "What are the GDPR penalties for a data breach?",
-            "Assess the EU AI Act risk level for a hiring screening AI.",
-            "Generate a GDPR compliance checklist for an AI system.",
+            "Quais são as multas da GDPR para vazamento de dados?",
+            "Avalie o risco da EU AI Act para uma IA de triagem de currículos.",
+            "Gere um checklist de conformidade GDPR para um sistema de IA.",
         ],
     },
     "arquimedes": {
         "graph": arquimedes_graph,
-        "name": "Archimedes",
-        "description": "Adaptive math-for-ML tutor — linear algebra, calculus, probability, statistics. RAG over Strang/Deisenroth/OpenStax; step-by-step derivations.",
-        "lang": "en",
+        "name": "Arquimedes",
+        "description": "Tutor adaptativo de matemática para ML — álgebra linear, cálculo, probabilidade e estatística. RAG sobre Strang/Deisenroth/OpenStax; derivações passo a passo.",
+        "lang": "pt-BR",
         "examples": [
-            "Explain eigenvectors with a geometric analogy, then cite the textbook.",
-            "Derive the gradient of the MSE loss w.r.t. w step by step.",
-            "Give me an intermediate exercise on Bayes' theorem, then check my answer.",
-            "What is the difference between MLE and MAP estimation?",
+            "Explique autovetores com uma analogia geométrica e cite o livro-texto.",
+            "Derive passo a passo o gradiente da função de perda MSE.",
+            "Exercício intermediário de Teorema de Bayes — depois corrija minha resposta.",
+            "Qual a diferença entre MLE e MAP na estimação?",
         ],
     },
     "atlas": {
         "graph": atlas_graph,
         "name": "Atlas",
-        "description": "Tech stack consultant — explores your GitHub repos, HF Spaces, and recommends technologies.",
-        "lang": "en",
+        "description": "Consultor de stack técnico — explora seus repositórios no GitHub, Spaces do HuggingFace e recomenda tecnologias.",
+        "lang": "pt-BR",
         "examples": [
-            "List all my GitHub repositories.",
-            "What's in my youtube_summarizer project?",
-            "Recommend a technology for deploying an ML model as an API.",
+            "Liste meus repositórios do GitHub.",
+            "O que tem no meu projeto youtube_summarizer?",
+            "Recomende uma stack para expor um modelo de ML como API.",
         ],
     },
 }
@@ -65,6 +65,7 @@ AVAILABLE_MODELS = [
     {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Google)", "speed": "fast"},
     {"id": "gpt-4o-mini", "name": "GPT-4o Mini (OpenAI)", "speed": "fast"},
     {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4 (Anthropic)", "speed": "medium"},
+    {"id": "hf/Qwen/Qwen2.5-7B-Instruct", "name": "Qwen2.5 7B (HF Inference)", "speed": "medium"},
 ]
 
 

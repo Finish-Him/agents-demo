@@ -1,76 +1,91 @@
-# Agents
+# 🤖 Agentes
 
-Three specialized LangGraph agents, each compiled into its own graph and
-exposed under `/chat/{agent_name}` on the FastAPI server.
+Três agentes LangGraph especializados, cada um compilado em seu próprio
+graph e exposto sob `/chat/{agent_name}` no servidor FastAPI.
 
-## Quick comparison
+> 💡 Para o **deep-dive** do Arquimedes (o agente em destaque para a entrevista),
+> veja [`arquimedes.md`](./arquimedes.md).
 
-| Agent | Role | Tools | Memory | Graph nodes |
+## 🔍 Comparação rápida
+
+| Agente | Papel | Tools | Memória | Nós do graph |
 |---|---|---|---|---|
-| **Prometheus** | AI compliance (GDPR, CCPA, EU AI Act, NIST AI RMF) | `regulations`, `penalties`, `risk_assessment`, `checklist`, `compare_jurisdictions` | Profile (compliance maturity, jurisdiction, AI systems) + summarization | 4 (assistant, tools, write_memory, summarize_conversation) |
-| **Arquimedes** | Adaptive AI tutor (ML, Python, deep learning, LLM agents) | `assess_level`, `generate_exercise`, `explain_concept`, `recommend_resources` | Student profile (level, gaps, preferences) + summarization | 5 (assistant, tools, write_memory, summarize, route_by_level) |
-| **Atlas** | Tech stack consultant (GitHub + HuggingFace) | `github_list_repos`, `github_repo_info`, `hf_search_models`, `analyze_project` | None (stateless tool-call loop) | 3 (assistant, tools, format_response) |
+| 🛡️ **Prometheus** | Compliance de IA (GDPR, CCPA, EU AI Act, NIST AI RMF) | `regulations`, `penalties`, `risk_assessment`, `checklist`, `compare_jurisdictions` | Perfil de compliance + sumarização | 4: `assistant`, `tools`, `write_memory`, `summarize_conversation` |
+| 🎓 **Arquimedes** | Tutor de matemática para ML (álgebra linear, cálculo, probabilidade, estatística) | **9 tools** — ensino, RAG, SymPy, plot, derivação, fine-tuned solver | Perfil do aluno (semântico) + sumarização + RAG retrieve | 5: `rag_retrieve`, `assistant`, `tools`, `write_memory`, `summarize_conversation` |
+| 🗺️ **Atlas** | Consultor de stack (GitHub + HuggingFace) | `github_list_repos`, `github_repo_info`, `hf_search_models`, `analyze_project` | Stateless | 3: `assistant`, `tools`, `format_response` |
 
-## Prometheus — AI Governance
+---
 
-**File**: `prometheus/agent.py`
+## 🛡️ Prometheus — AI Governance
 
-ReAct loop with two extras:
-1. **Long-term memory** — after each turn, `write_memory` extracts
-   organization-level facts (industry, jurisdiction, AI systems,
-   compliance maturity) and persists to `Store` under
-   `("compliance_profile", user_id)`. On the next turn, those facts are
-   prepended to the system prompt.
-2. **Auto-summarization** — when message history exceeds 10 messages,
-   `summarize_conversation` compresses everything into a `summary`
-   string and emits `RemoveMessage` for old turns, keeping only the
-   last 2.
+📂 `prometheus/agent.py`
 
-**Use cases**:
-- "What are the GDPR penalties for a data breach?"
-- "Assess the EU AI Act risk level for a hiring screening AI."
-- "Generate a GDPR compliance checklist."
+ReAct loop com dois extras:
 
-## Arquimedes — Adaptive Tutor
+- 🧠 **Memória de longo prazo** — após cada turno, `write_memory` extrai
+  fatos organizacionais (indústria, jurisdição, sistemas de IA, maturidade
+  de compliance) e persiste no `Store` sob `("compliance_profile", user_id)`.
+- ✂️ **Auto-sumarização** — ao passar de 10 mensagens,
+  `summarize_conversation` comprime o histórico em um `summary`,
+  preservando apenas as 2 últimas mensagens.
 
-**File**: `arquimedes/agent.py`
+**Casos de uso:**
+- "Quais são as multas da GDPR para vazamento de dados?"
+- "Avalie o risco da EU AI Act para uma IA de triagem de currículos."
+- "Gere um checklist de conformidade GDPR."
 
-Same ReAct + memory + summarization pattern as Prometheus, with two
-domain-specific differences:
-- The memory namespace is `("student_profile", user_id)` and tracks
-  prior knowledge level (beginner/intermediate/advanced), topics
-  covered, gaps detected.
-- A `route_by_level` conditional node selects between simple/technical
-  explanation tools based on the persisted level.
+---
 
-**Use cases**:
-- "I want to learn machine learning from scratch."
-- "Explain transformers with a simple analogy."
-- "Generate an intermediate exercise on gradient descent."
+## 🎓 Arquimedes — Tutor de Matemática para ML
 
-## Atlas — Stack Specialist
+📂 `arquimedes/agent.py` · 📖 [`arquimedes.md`](./arquimedes.md) (deep-dive)
 
-**File**: `atlas/agent.py`
+Topologia LangGraph mais rica que Prometheus — adiciona:
 
-Pure stateless ReAct loop — no profile memory, no summarization.
-Tools call live external APIs:
-- `github_list_repos`, `github_repo_info` → GitHub REST API (requires
-  `GITHUB_TOKEN`)
-- `hf_search_models` → HuggingFace Hub API (requires `HF_TOKEN`)
-- `analyze_project` → fetches a repo's README + tech files and produces
-  a structured stack summary
+- 🔀 **Router de entrada** (`arquimedes/routing.py`) — heurística de
+  citation-seeking direciona para `rag_retrieve` antes do `assistant`.
+- 🔎 **Nó `rag_retrieve`** — busca híbrida BM25 + densa em ChromaDB
+  (`arquimedes/rag/retrieval.py`) e injeta as passagens encontradas no
+  system prompt.
+- 🧮 **Subgraph de derivação** — `arquimedes/subgraphs/derivation.py`
+  com nós `plan` → `step` → `verify`, exposto via tool
+  `step_by_step_derive`.
+- 🧠 **Memória semântica** — `shared/semantic_store.py` (Chroma) ou
+  `shared/postgres_store.py` (pgvector / Supabase) recupera fatos do
+  aluno por similaridade (não por prefix-scan).
 
-**Use cases**:
-- "List all my GitHub repositories."
-- "What's in my youtube_summarizer project?"
-- "Recommend a technology for deploying an ML model as an API."
+**Casos de uso:**
+- "Explique autovetores com uma analogia geométrica e cite o livro-texto."
+- "Derive passo a passo o gradiente da função de perda MSE."
+- "Exercício intermediário de Teorema de Bayes — depois corrija minha resposta."
 
-## Adding a new agent
+---
 
-1. Create `myagent/` with `agent.py`, `tools.py`, `prompts.py`
-2. Build a `StateGraph` (use Prometheus as template if you need memory,
-   Atlas if stateless)
-3. Compile with `checkpointer=get_checkpointer(), store=get_store()`
-4. Import the compiled `graph` in `api.py` and register in `AGENTS`
-5. Add a tab in `ui.py` (Gradio) or rely on the React frontend reading
-   `/agents` for dynamic registration
+## 🗺️ Atlas — Stack Specialist
+
+📂 `atlas/agent.py`
+
+Loop ReAct puro stateless — sem memória de perfil, sem sumarização.
+Tools fazem chamadas a APIs externas:
+
+- `github_list_repos`, `github_repo_info` → GitHub REST API (requer `GITHUB_TOKEN`)
+- `hf_search_models` → HuggingFace Hub API (requer `HF_TOKEN`)
+- `analyze_project` → busca README + arquivos técnicos do repo e produz um resumo estruturado da stack
+
+**Casos de uso:**
+- "Liste meus repositórios do GitHub."
+- "O que tem no meu projeto youtube_summarizer?"
+- "Recomende uma stack para expor um modelo de ML como API."
+
+---
+
+## ➕ Adicionando um novo agente
+
+1. Crie `meu_agente/` com `agent.py`, `tools.py`, `prompts.py`.
+2. Construa um `StateGraph` — use **Prometheus** como template se precisar
+   de memória, **Atlas** se for stateless, **Arquimedes** se for usar RAG
+   + LCEL + subgraph.
+3. Compile com `checkpointer=get_checkpointer(), store=get_store()`.
+4. Importe o `graph` compilado em `api.py` e registre no dict `AGENTS`.
+5. (Opcional) adicione uma aba em `ui.py` (Gradio) ou apenas confie no
+   frontend React que lê `/agents` dinamicamente.

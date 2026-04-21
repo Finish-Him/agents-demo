@@ -1,4 +1,4 @@
-"""Archimedes — Math-for-ML adaptive tutor.
+"""Arquimedes — Math-for-ML adaptive tutor.
 
 LangGraph topology:
 

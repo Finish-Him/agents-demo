@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   agents-demo:
     build: .
@@ -16,6 +14,28 @@ services:
     command: ["python", "api.py"]
     ports:
       - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - agent_data:/app/data
+    restart: unless-stopped
+
+  # Optional: MCP server over SSE so external MCP clients can use the tools.
+  # Enable with:  docker compose --profile mcp up -d
+  arquimedes-mcp:
+    profiles: ["mcp"]
+    build: .
+    command:
+      - python
+      - -m
+      - arquimedes.mcp_server
+      - --sse
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8765"
+    ports:
+      - "8765:8765"
     env_file:
       - .env
     volumes:

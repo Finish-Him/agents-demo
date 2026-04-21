@@ -39,6 +39,31 @@ sentence-transformers>=3.0.0
 rank-bm25>=0.2.2
 pypdf>=4.0.0
 
+# Math tools (symbolic + plotting)
+sympy>=1.13.0
+matplotlib>=3.9.0
+numpy>=1.26.0
+
+# Async SQLite (optional persistence for API path)
+aiosqlite>=0.20.0
+
+# Fine-tuning solver (optional — Inference API mode only needs huggingface_hub,
+# local GPU mode additionally needs torch + transformers + peft + bitsandbytes
+# which are NOT pinned here to keep the prod image slim; see
+# arquimedes/finetuning/README.md for a CUDA install command).
+datasets>=2.19.0
+
+# MCP (Model Context Protocol) — exposes Arquimedes tools to Claude Desktop,
+# Cursor, Cline, etc.
+mcp>=1.0.0
+
+# Production memory backend — Supabase / self-hosted Postgres + pgvector.
+# psycopg2-binary is kept optional (PostgresSemanticStore is only instantiated
+# when POSTGRES_URL is set). Uncomment if you deploy against Supabase.
+# psycopg2-binary>=2.9.9
+# langgraph-checkpoint-postgres>=2.0.0
+# langchain-postgres>=0.0.13
+
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.24.0

@@ -6,7 +6,10 @@ so both the LangGraph agent and the MCP server pick them up automatically.
 """
 
 from arquimedes.tools.derivation import derivation_tools, step_by_step_derive
+from arquimedes.tools.finetuned_solver import finetuned_tools, solve_with_finetuned
+from arquimedes.tools.plotting import plot_function, plotting_tools
 from arquimedes.tools.rag_tool import rag_tools, search_knowledge_base
+from arquimedes.tools.symbolic import solve_symbolic, symbolic_tools
 from arquimedes.tools.teaching import (
     assess_level,
     explain_concept,
@@ -21,12 +24,25 @@ __all__ = [
     "find_resources",
     "generate_exercise",
     "search_knowledge_base",
+    "solve_symbolic",
+    "plot_function",
     "step_by_step_derive",
+    "solve_with_finetuned",
     "teaching_tools",
     "rag_tools",
+    "symbolic_tools",
+    "plotting_tools",
     "derivation_tools",
+    "finetuned_tools",
     "all_tools",
 ]
 
 # Central registry — every new tool module appends here.
-all_tools = list(teaching_tools) + list(rag_tools) + list(derivation_tools)
+all_tools = (
+    list(teaching_tools)
+    + list(rag_tools)
+    + list(symbolic_tools)
+    + list(plotting_tools)
+    + list(derivation_tools)
+    + list(finetuned_tools)
+)
