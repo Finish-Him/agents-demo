@@ -17,3 +17,4 @@ frontend/dist/
 # Local persistent data
 data/
 *.sqlite3
+frontend/test-results/
