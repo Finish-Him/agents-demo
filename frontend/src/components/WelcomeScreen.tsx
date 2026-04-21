@@ -46,7 +46,7 @@ export function WelcomeScreen() {
         {/* Example prompts */}
         <div className="space-y-2">
           <p className="text-xs text-text-muted uppercase tracking-wider font-medium">
-            Try asking
+            Experimente
           </p>
           <div className="grid gap-2">
             {info.examples.map((ex, i) => (

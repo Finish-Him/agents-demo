@@ -2,7 +2,7 @@ import { cn } from '@/lib/cn';
 import { useChatStore } from '@/stores/useChatStore';
 import { AgentCard } from './AgentCard';
 import { ModelPicker } from './ModelPicker';
-import { Bot, Plus, Github } from 'lucide-react';
+import { GraduationCap, Plus, Github } from 'lucide-react';
 
 const AGENT_EMOJIS: Record<string, string> = {
   prometheus: '🛡️',
@@ -28,18 +28,22 @@ export function Sidebar() {
       {/* Header */}
       <div className="p-4 border-b border-surface-border">
         <div className="flex items-center gap-2 mb-1">
-          <Bot className="w-5 h-5 text-accent" />
-          <h1 className="text-lg font-bold text-text-primary">Agents Demo</h1>
+          <GraduationCap className="w-5 h-5 text-accent" />
+          <h1 className="text-lg font-bold text-text-primary font-display tracking-tight">
+            Arquimedes
+          </h1>
         </div>
-        <p className="text-xs text-text-muted">
-          LangGraph AI Agents — Portfolio by Moises Alves
+        <p className="text-xs text-text-muted leading-snug">
+          Agente tutor de matemática para ML —{' '}
+          <span className="text-mouts">Mouts IT</span> ×{' '}
+          <span className="text-ambev">AmBev</span>
         </p>
       </div>
 
       {/* Agent list */}
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
-        <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider px-1 mb-2">
-          Agents
+        <p className="text-[11px] font-medium text-text-muted uppercase tracking-[0.18em] px-1 mb-2">
+          Agentes
         </p>
         {agentKeys.map((key) => (
           <AgentCard
@@ -67,7 +71,7 @@ export function Sidebar() {
           )}
         >
           <Plus className="w-4 h-4" />
-          New Chat
+          Nova conversa
         </button>
 
         <a
@@ -80,7 +84,7 @@ export function Sidebar() {
           )}
         >
           <Github className="w-4 h-4" />
-          Source Code
+          Código-fonte
         </a>
       </div>
     </aside>
