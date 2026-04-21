@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatPanel } from '@/components/ChatPanel';
 import { ChatInput } from '@/components/ChatInput';
+import { ConceptsPanel } from '@/components/ConceptsPanel';
 import { useChatStore } from '@/stores/useChatStore';
 import { fetchAgents, fetchModels } from '@/lib/api';
 import { Loader2 } from 'lucide-react';
@@ -36,6 +37,7 @@ export default function App() {
         <ChatPanel />
         <ChatInput />
       </main>
+      <ConceptsPanel />
     </div>
   );
 }
