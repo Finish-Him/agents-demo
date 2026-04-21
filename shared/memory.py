@@ -37,6 +37,12 @@ except Exception:  # pragma: no cover
     _AIOSQLITE_AVAILABLE = False
 
 try:
+    from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+    _POSTGRES_AVAILABLE = True
+except Exception:  # pragma: no cover
+    _POSTGRES_AVAILABLE = False
+
+try:
     from shared.semantic_store import SemanticStore
     _SEMANTIC_AVAILABLE = True
 except Exception:  # pragma: no cover
@@ -100,13 +106,26 @@ def get_store():
     if _store is not None:
         return _store
 
-    backend = os.getenv("MEMORY_BACKEND", "semantic" if _SEMANTIC_AVAILABLE else "memory")
+    pg_url = os.getenv("POSTGRES_URL") or os.getenv("SUPABASE_DB_URL")
+    backend = os.getenv(
+        "MEMORY_BACKEND",
+        "postgres" if pg_url else ("semantic" if _SEMANTIC_AVAILABLE else "memory"),
+    )
+
+    if backend == "postgres" and pg_url:
+        try:
+            from shared.postgres_store import PostgresSemanticStore
+            _store = PostgresSemanticStore(conn_string=pg_url)
+            return _store
+        except Exception:
+            # Any Postgres init error -> graceful fallback.
+            pass
+
     if backend == "semantic" and _SEMANTIC_AVAILABLE:
         try:
             _store = SemanticStore()
             return _store
         except Exception:
-            # Any Chroma init error -> graceful fallback.
             pass
 
     _store = InMemoryStore()
