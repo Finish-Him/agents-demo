@@ -43,6 +43,73 @@ export interface StreamCallbacks {
   onError: (error: Error) => void;
 }
 
+type SSEEvent = { event: string; data: string };
+
+/**
+ * Parse the Server-Sent-Events wire format: records separated by blank
+ * lines, each record containing one or more ``field: value`` lines.
+ * Multi-line ``data`` fields are joined with newlines.
+ */
+function parseSSEBuffer(buffer: string): { events: SSEEvent[]; rest: string } {
+  const events: SSEEvent[] = [];
+  const parts = buffer.split(/\r?\n\r?\n/);
+  const rest = parts.pop() ?? '';
+
+  for (const raw of parts) {
+    if (!raw.trim()) continue;
+    let eventName = 'message';
+    const dataLines: string[] = [];
+    for (const line of raw.split(/\r?\n/)) {
+      if (line.startsWith(':')) continue; // comment
+      const sep = line.indexOf(':');
+      if (sep === -1) continue;
+      const field = line.slice(0, sep);
+      let value = line.slice(sep + 1);
+      if (value.startsWith(' ')) value = value.slice(1);
+      if (field === 'event') eventName = value;
+      else if (field === 'data') dataLines.push(value);
+    }
+    events.push({ event: eventName, data: dataLines.join('\n') });
+  }
+  return { events, rest };
+}
+
+function dispatch(ev: SSEEvent, cb: StreamCallbacks) {
+  switch (ev.event) {
+    case 'metadata':
+      try {
+        cb.onMetadata?.(JSON.parse(ev.data));
+      } catch {
+        /* ignore */
+      }
+      return;
+    case 'token':
+      cb.onToken(ev.data);
+      return;
+    case 'tool_start':
+      cb.onToolStart?.(ev.data);
+      return;
+    case 'tool_end':
+      cb.onToolEnd?.(ev.data);
+      return;
+    case 'done':
+      cb.onDone();
+      return;
+    default:
+      // Fallback: bare data line with JSON containing thread_id
+      try {
+        const parsed = JSON.parse(ev.data);
+        if (parsed && typeof parsed === 'object' && 'thread_id' in parsed) {
+          cb.onMetadata?.(parsed);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+      if (ev.data) cb.onToken(ev.data);
+  }
+}
+
 export function streamChat(
   agentName: string,
   message: string,
@@ -53,103 +120,56 @@ export function streamChat(
 ): AbortController {
   const controller = new AbortController();
 
-  fetch(`/chat/${agentName}/stream`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message,
-      thread_id: threadId,
-      user_id: userId,
-      model_name: model,
-    }),
-    signal: controller.signal,
-  })
-    .then(async (res) => {
+  (async () => {
+    try {
+      const res = await fetch(`/chat/${agentName}/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          thread_id: threadId,
+          user_id: userId,
+          model_name: model,
+        }),
+        signal: controller.signal,
+      });
+
       if (!res.ok) {
         const text = await res.text();
         throw new Error(`API error ${res.status}: ${text}`);
       }
-
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No response body');
 
       const decoder = new TextDecoder();
       let buffer = '';
+      let doneEmitted = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.startsWith('event:')) {
-            const eventType = line.slice(6).trim();
-
-            // Next line should be data:
-            const dataLineIdx = lines.indexOf(line) + 1;
-            if (dataLineIdx < lines.length) {
-              const dataLine = lines[dataLineIdx];
-              if (dataLine?.startsWith('data:')) {
-                const data = dataLine.slice(5).trim();
-                handleSSEEvent(eventType, data, callbacks);
-              }
-            }
-          } else if (line.startsWith('data:')) {
-            // sse-starlette format: "event: X\ndata: Y\n\n"
-            // Sometimes just data lines — try to parse as JSON
-            const data = line.slice(5).trim();
-            if (data) {
-              // Try to detect event type from data content
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed.thread_id) {
-                  callbacks.onMetadata?.(parsed);
-                }
-              } catch {
-                // Plain token text
-                callbacks.onToken(data);
-              }
-            }
-          }
+        const { events, rest } = parseSSEBuffer(buffer);
+        buffer = rest;
+        for (const ev of events) {
+          dispatch(ev, callbacks);
+          if (ev.event === 'done') doneEmitted = true;
         }
       }
-
-      callbacks.onDone();
-    })
-    .catch((err: Error) => {
-      if (err.name !== 'AbortError') {
-        callbacks.onError(err);
+      if (buffer.trim()) {
+        const { events } = parseSSEBuffer(buffer + '\n\n');
+        for (const ev of events) {
+          dispatch(ev, callbacks);
+          if (ev.event === 'done') doneEmitted = true;
+        }
       }
-    });
+      if (!doneEmitted) callbacks.onDone();
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        callbacks.onError(err as Error);
+      }
+    }
+  })();
 
   return controller;
-}
-
-function handleSSEEvent(
-  eventType: string,
-  data: string,
-  callbacks: StreamCallbacks,
-) {
-  switch (eventType) {
-    case 'metadata':
-      try {
-        callbacks.onMetadata?.(JSON.parse(data));
-      } catch { /* ignore */ }
-      break;
-    case 'token':
-      callbacks.onToken(data);
-      break;
-    case 'tool_start':
-      callbacks.onToolStart?.(data);
-      break;
-    case 'tool_end':
-      callbacks.onToolEnd?.(data);
-      break;
-    case 'done':
-      callbacks.onDone();
-      break;
-  }
 }

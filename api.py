@@ -36,12 +36,13 @@ AGENTS = {
     "arquimedes": {
         "graph": arquimedes_graph,
         "name": "Archimedes",
-        "description": "Adaptive AI tutor — teaches ML, Python, deep learning, and LLM agents at your level.",
+        "description": "Adaptive math-for-ML tutor — linear algebra, calculus, probability, statistics. RAG over Strang/Deisenroth/OpenStax; step-by-step derivations.",
         "lang": "en",
         "examples": [
-            "I want to learn machine learning from scratch.",
-            "Explain transformers with a simple analogy.",
-            "Generate an intermediate exercise on gradient descent.",
+            "Explain eigenvectors with a geometric analogy, then cite the textbook.",
+            "Derive the gradient of the MSE loss w.r.t. w step by step.",
+            "Give me an intermediate exercise on Bayes' theorem, then check my answer.",
+            "What is the difference between MLE and MAP estimation?",
         ],
     },
     "atlas": {
@@ -182,7 +183,11 @@ async def chat_stream(agent_name: str, req: ChatRequest):
             version="v2",
         ):
             kind = event["event"]
-            if kind == "on_chat_model_stream":
+            # Only stream tokens that the assistant node produces — otherwise
+            # internal LLM calls (memory extraction, summarization) would
+            # leak strings like "No new information" into the chat response.
+            node = event.get("metadata", {}).get("langgraph_node")
+            if kind == "on_chat_model_stream" and node == "assistant":
                 token = event["data"]["chunk"].content
                 if token:
                     yield {"event": "token", "data": token}

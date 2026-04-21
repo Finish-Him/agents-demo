@@ -1,8 +1,11 @@
 import ReactMarkdown from 'react-markdown';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeKatex from 'rehype-katex';
+import remarkMath from 'remark-math';
 import { cn } from '@/lib/cn';
 import type { Message } from '@/stores/useChatStore';
 import { User, Bot } from 'lucide-react';
+import { ToolTrace } from './ToolTrace';
 
 interface ChatMessageProps {
   message: Message;
@@ -44,12 +47,20 @@ export function ChatMessage({ message }: ChatMessageProps) {
             {message.content}
           </p>
         ) : (
-          <div className="prose-chat text-sm text-text-primary">
-            {message.content ? (
-              <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
-                {message.content}
-              </ReactMarkdown>
-            ) : null}
+          <div className="text-sm text-text-primary">
+            {message.toolCalls && message.toolCalls.length > 0 && (
+              <ToolTrace calls={message.toolCalls} />
+            )}
+            <div className="prose-chat">
+              {message.content ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkMath]}
+                  rehypePlugins={[rehypeKatex, rehypeHighlight]}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              ) : null}
+            </div>
           </div>
         )}
       </div>

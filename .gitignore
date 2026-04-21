@@ -13,3 +13,7 @@ dist/
 node_modules/
 frontend/dist/
 .pytest_cache/
+
+# Local persistent data
+data/
+*.sqlite3

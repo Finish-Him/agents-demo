@@ -1,0 +1,46 @@
+# Math-for-ML corpus manifest.
+# Only CC-BY / CC-BY-NC / public-domain sources so the repo is distributable.
+# Each entry documents the source; ingestion downloads on demand.
+
+sources:
+  - name: "Mathematics for Machine Learning"
+    authors: ["Marc Peter Deisenroth", "A. Aldo Faisal", "Cheng Soon Ong"]
+    license: "CC-BY-NC-ND 4.0"
+    url: "https://mml-book.github.io/"
+    format: "pdf"
+    topic: ["linear_algebra", "calculus", "probability", "statistics"]
+    note: "Non-commercial redistribution OK; pulled locally, not bundled."
+
+  - name: "OpenStax Calculus Volume 1"
+    authors: ["Gilbert Strang", "Edwin Herman"]
+    license: "CC-BY 4.0"
+    url: "https://openstax.org/details/books/calculus-volume-1"
+    format: "pdf"
+    topic: ["calculus"]
+
+  - name: "MIT OCW 18.06 Linear Algebra lecture notes"
+    authors: ["Gilbert Strang"]
+    license: "CC-BY-NC-SA"
+    url: "https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/pages/readings/"
+    format: "pdf"
+    topic: ["linear_algebra"]
+
+  - name: "Introduction to Probability (sample chapters)"
+    authors: ["Joseph Blitzstein", "Jessica Hwang"]
+    license: "author-posted sample chapters, non-redistributable"
+    url: "https://projects.iq.harvard.edu/stat110/strategic-practice-problems"
+    format: "pdf"
+    topic: ["probability"]
+    note: "Link-out only; do not bundle."
+
+# Seed corpus (shipped with the repo as plain Markdown so tests are
+# deterministic without downloading anything).
+seed:
+  - path: "data/corpus/linear_algebra_primer.md"
+    topic: "linear_algebra"
+  - path: "data/corpus/calculus_primer.md"
+    topic: "calculus"
+  - path: "data/corpus/probability_primer.md"
+    topic: "probability"
+  - path: "data/corpus/statistics_primer.md"
+    topic: "statistics"
