@@ -1,103 +1,146 @@
-# Architecture
+# 🏗️ Arquitetura
 
-High-level view of how `agents-demo` is wired together.
+Visão de alto nível de como o `agents-demo` se conecta.
 
-## Component diagram (textual)
+---
 
-```
+## 🧱 Diagrama de componentes
+
+```text
 ┌─────────────────────────┐      ┌─────────────────────────┐
-│   React frontend        │      │   Gradio UI (ui.py)     │
-│   (frontend/dist)       │      │   3 tabs, 1 per agent   │
+│  React (Vite + Tailwind │      │  Gradio UI (ui.py)      │
+│  + framer-motion+KaTeX) │      │  3 abas, 1 por agente   │
+│  frontend/dist          │      │                         │
 └──────────┬──────────────┘      └──────────┬──────────────┘
            │ HTTP + SSE                     │ in-process
            ▼                                ▼
 ┌──────────────────────────────────────────────────────────┐
-│   FastAPI server (api.py)                                │
-│   /health  /agents  /models  /chat/{name}  /chat/.../stream │
+│  FastAPI (api.py)                                        │
+│  /health  /agents  /models  /chat/{name}  /chat/.../stream │
 └──────────┬───────────────────────────────────────────────┘
            │
            ▼
 ┌──────────────────────────────────────────────────────────┐
-│   LangGraph runtime — 3 compiled graphs                  │
-│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │
-│   │ Prometheus  │  │ Arquimedes  │  │   Atlas     │      │
-│   │  (5 nodes)  │  │  (5 nodes)  │  │  (3 nodes)  │      │
-│   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘      │
-└──────────┼─────────────────┼─────────────────┼───────────┘
-           │                 │                 │
-           ▼                 ▼                 ▼
-   ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-   │ tools.py      │  │ tools.py      │  │ tools.py      │
-   │ (compliance)  │  │ (tutoring)    │  │ (GitHub + HF) │
-   └───────────────┘  └───────────────┘  └───────────────┘
-                              │
-                              ▼
-                  ┌───────────────────────────┐
-                  │ shared/llm.py             │
-                  │ Multi-provider LLM factory │
-                  │ OpenRouter / OpenAI /     │
-                  │ Anthropic / Gemini        │
-                  └───────────────────────────┘
+│  LangGraph runtime — 3 graphs compilados                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
+│  │ Prometheus  │  │ Arquimedes  │  │   Atlas     │       │
+│  │ 4 nodes     │  │ 5 nodes +   │  │ 3 nodes     │       │
+│  │             │  │ derivation  │  │             │       │
+│  │             │  │ subgraph    │  │             │       │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘       │
+└─────────┼─────────────────┼─────────────────┼────────────┘
+          │                 │                 │
+          ▼                 ▼                 ▼
+   ┌──────────┐   ┌────────────────────┐   ┌──────────┐
+   │ tools.py │   │ tools/ (9 tools)   │   │ tools.py │
+   │compliance│   │ teaching · RAG ·   │   │GitHub+HF │
+   │          │   │ SymPy · plot ·     │   │          │
+   │          │   │ derive · LoRA      │   │          │
+   └──────────┘   └─────────┬──────────┘   └──────────┘
+                            │
+              ┌─────────────┴───────────────┐
+              ▼                             ▼
+      ┌──────────────┐         ┌────────────────────┐
+      │ ChromaDB RAG │         │ shared/llm.py      │
+      │ BM25 + denso │         │ multi-provider     │
+      │ + RRF fusion │         │ OpenRouter/OpenAI/ │
+      │ + LaTeX-aware│         │ Anthropic/Google/  │
+      │ chunker      │         │ Azure/HF Inference │
+      └──────────────┘         └────────────────────┘
 ```
 
-## State & memory
+📡 Camada extra opcional — **MCP server** (`arquimedes/mcp_server/`)
+expõe as mesmas 9 tools do Arquimedes via stdio ou SSE para clientes
+externos (Claude Desktop, Cursor, Cline). Schemas introspectados do
+`args_schema` Pydantic — paridade automática.
 
-Two persistence layers, both injected at graph compile time
+---
+
+## 💾 Estado e memória
+
+Duas camadas de persistência, ambas injetadas no compile-time do graph
 (`shared/memory.py`):
 
-| Layer | Implementation | Scope | Purpose |
-|---|---|---|---|
-| **Checkpointer** | `MemorySaver` (in-process, swappable for SQLite) | Per `thread_id` | Conversation history, resumability |
-| **Store** | `InMemoryStore` | Per `(namespace, user_id)` | Long-term user profile (compliance facts, learning level, etc.) |
+| Camada | Backend padrão | Backend produção | Escopo | Propósito |
+|---|---|---|---|---|
+| 🧵 **Checkpointer** | `MemorySaver` | `AsyncSqliteSaver` ou `PostgresSaver` | por `thread_id` | histórico da conversa, resumability |
+| 🧠 **Store** | `SemanticStore` (Chroma) | `PostgresSemanticStore` (pgvector / Supabase) | por `(namespace, user_id)` | perfil de longo prazo recuperado por similaridade |
 
-Both are singletons — every agent compiled by `builder.compile()` shares
-the same checkpointer/store instances. To swap for production
-(SQLite checkpointer, Postgres store), edit `shared/memory.py` only.
+Ambos são singletons — todo agente compilado por `builder.compile()`
+compartilha o mesmo checkpointer/store. Para trocar em produção, edite
+apenas `shared/memory.py` (env vars `MEMORY_BACKEND`,
+`POSTGRES_URL`, `SQLITE_CHECKPOINT_PATH`).
 
-## Configuration injection
+---
 
-`shared/configuration.py` defines a `@dataclass Configuration` with:
-- `model_name` — overridable per request
-- `user_id` — segregates Store namespaces
+## ⚙️ Injeção de configuração
 
-The dataclass is passed as `config_schema=Configuration` when building the
-graph. Each node reads it via `Configuration.from_runnable_config(config)`.
-Request-level overrides flow through the `configurable` field of
-`RunnableConfig`.
+`shared/configuration.py` define um `@dataclass Configuration`:
 
-## LLM factory (`shared/llm.py`)
+- 🎯 `model_name` — sobrescrevível por requisição
+- 👤 `user_id` — segrega namespaces do Store
 
-Single entry point: `get_llm(model: str | None = None)`. Routing by prefix:
-- `qwen/...`, `deepseek/...` → OpenRouter
-- `gpt-...`, `o1...` → OpenAI
-- `claude-...` → Anthropic
-- `gemini-...` → Google
+A dataclass é passada como `config_schema=Configuration` no `builder`.
+Cada nó lê via `Configuration.from_runnable_config(config)`. Overrides
+de request fluem pelo campo `configurable` do `RunnableConfig`.
 
-Default: `qwen/qwen3-235b-a22b` (cheap, fast, function-calling capable).
-Override per request via `ChatRequest.model_name`.
+---
 
-## Request flow (POST /chat/{agent}/stream)
+## 🧠 Fábrica de LLMs (`shared/llm.py`)
 
-1. FastAPI handler builds `RunnableConfig` with `thread_id`, `user_id`, `model_name`
-2. `graph.astream_events(..., version="v2")` is invoked
-3. Server-Sent Events emitted:
-   - `metadata` (thread_id, agent name)
-   - `token` (every LLM chunk)
-   - `tool_start` / `tool_end` (tool execution lifecycle)
+Único ponto de entrada: `get_llm(model: str | None = None)`. Roteamento
+por prefixo:
+
+| Prefixo | Provider | Wrapper |
+|---|---|---|
+| `qwen/`, `deepseek/`, sem prefixo | OpenRouter | `ChatOpenAI(base_url=...)` |
+| `openai/`, `gpt-`, `o1` | OpenAI | `ChatOpenAI` |
+| `anthropic/`, `claude-` | Anthropic | `ChatAnthropic` |
+| `gemini`, `google/` | Google | `ChatGoogleGenerativeAI` |
+| `azure/` | Azure OpenAI | `AzureChatOpenAI` |
+| `hf/`, `huggingface/` | HF Inference API | `ChatHuggingFace` |
+
+Default: `qwen/qwen3-235b-a22b` (barato, rápido, suporta function-calling).
+Override por requisição via `ChatRequest.model_name`.
+
+---
+
+## 🌊 Fluxo de uma requisição (`POST /chat/{agent}/stream`)
+
+1. Handler FastAPI monta `RunnableConfig` com `thread_id`, `user_id`,
+   `model_name`.
+2. `graph.astream_events(..., version="v2")` é invocado.
+3. SSE são emitidos com **filtro por `langgraph_node == 'assistant'`**
+   — só tokens do assistente vão para o cliente; `write_memory` e
+   `summarize_conversation` não vazam strings internas:
+   - `metadata` (thread_id, agent)
+   - `token` (cada chunk do LLM do assistant)
+   - `tool_start` / `tool_end` (lifecycle de tools)
    - `done`
-4. Frontend renders tokens incrementally, badges tool calls
+4. Frontend renderiza tokens incrementalmente (`react-markdown` +
+   `rehype-katex`), pinta badges de tools com framer-motion.
 
-## Frontend ↔ Backend coupling
+---
 
-The React build (`frontend/dist/`) is served by the same FastAPI process
-via `StaticFiles` + SPA fallback (see `api.py:200-220`). API route
-prefixes (`health`, `agents`, `chat`, `docs`, `redoc`) are explicitly
-excluded from the SPA fallback so FastAPI's own routes win.
+## 🎨 Frontend ↔ Backend
 
-## Why this shape
+O build React (`frontend/dist/`) é servido pelo mesmo processo FastAPI
+via `StaticFiles` + fallback SPA (`api.py`). Prefixos da API (`health`,
+`agents`, `chat`, `docs`, `redoc`) são excluídos do fallback para que
+o FastAPI vença.
 
-- **Single process** in dev: easier to run, easier to demo
-- **Multi-provider LLM**: no vendor lock-in; falls back gracefully
-- **Streaming-first**: every endpoint that supports it streams via SSE
-- **Memory split**: thread state (volatile) vs user profile (durable)
-  matches the LangGraph reference patterns from the docs
+Em prod com nginx, o reverse-proxy roteia `:80 → :8000` mantendo
+`proxy_buffering off` (essencial para SSE).
+
+---
+
+## 🤔 Por quê dessa forma
+
+- 🧩 **Single process em dev** — mais fácil rodar, mais fácil demonstrar.
+- 🔌 **LLM multi-provider** — sem vendor lock-in; fallback gracioso.
+- 🌊 **Streaming-first** — todo endpoint que pode, transmite via SSE.
+- 🧠 **Memória dividida** — thread state (volátil) vs perfil de usuário
+  (durável). Casa com os patterns de referência da doc do LangGraph.
+- 🛠️ **Tools como source of truth única** — cada `@tool` em
+  `arquimedes/tools/` é consumida por LangGraph **e** pelo MCP server
+  sem duplicação.

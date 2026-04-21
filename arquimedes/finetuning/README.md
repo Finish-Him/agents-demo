@@ -1,7 +1,7 @@
 # Arquimedes fine-tuning pipeline
 
 End-to-end LoRA fine-tuning of a small instruction model on GSM8K so the
-Archimedes tutor has a dedicated math word-problem solver.
+Arquimedes tutor has a dedicated math word-problem solver.
 
 ## TL;DR
 

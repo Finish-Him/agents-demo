@@ -1,4 +1,4 @@
-# Deploying Archimedes to a VPS
+# Deploying Arquimedes to a VPS
 
 One-shot script: `deploy/bootstrap.sh`.
 
@@ -74,7 +74,7 @@ The script is idempotent — re-running it just pulls + rebuilds.
 
 ## Post-deploy
 
-After the script prints `✅ Archimedes is live`:
+After the script prints `✅ Arquimedes is live`:
 
 - Visit `http://187.77.37.158/` — React UI + chat.
 - Visit `http://187.77.37.158/docs` — FastAPI OpenAPI.

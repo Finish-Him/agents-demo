@@ -33,19 +33,9 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass
 from typing import Any, Iterable
 
-
-@dataclass
-class StoreRecord:
-    namespace: tuple[str, ...]
-    key: str
-    value: dict[str, Any]
-
-
-def _ns(namespace: tuple[str, ...] | list[str]) -> str:
-    return "::".join(namespace)
+from shared.store_types import StoreRecord, namespace_key as _ns
 
 
 class PostgresSemanticStore:

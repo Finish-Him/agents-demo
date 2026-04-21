@@ -27,7 +27,7 @@ export function ModelPicker() {
   return (
     <div ref={ref} className="relative">
       <p className="text-[11px] font-medium text-text-muted uppercase tracking-wider px-1 mb-1.5">
-        Model
+        Modelo
       </p>
       <button
         onClick={() => setOpen(!open)}

@@ -10,7 +10,7 @@ dataset:
   train_split: "train[:5000]"                # Keep runs short (<3 h on T4)
   eval_split: "test[:300]"
   prompt_template: |
-    You are Archimedes, a math-for-ML tutor. Solve the following problem
+    You are Arquimedes, a math-for-ML tutor. Solve the following problem
     step by step and end with a line "#### <final_numeric_answer>".
 
     Problem: {question}

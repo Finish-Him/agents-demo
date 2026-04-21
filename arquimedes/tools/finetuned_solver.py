@@ -25,7 +25,7 @@ from langchain_core.tools import tool
 
 
 PROMPT_TEMPLATE = (
-    "You are Archimedes, a math-for-ML tutor. Solve the following problem "
+    "You are Arquimedes, a math-for-ML tutor. Solve the following problem "
     "step by step and end with a line '#### <final_numeric_answer>'.\n\n"
     "Problem: {question}\n\nSolution:"
 )

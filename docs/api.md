@@ -1,13 +1,15 @@
-# API Reference
+# 🛰️ Referência da API
 
-FastAPI server in `api.py`. Default port `8000`. Auto-generated OpenAPI
-docs available at `/docs` and `/redoc`.
+Servidor FastAPI em `api.py` · porta padrão `8000` · OpenAPI auto-gerada
+em `/docs` e `/redoc`.
 
-## Endpoints
+---
+
+## 🔌 Endpoints
 
 ### `GET /health`
 
-Liveness check + agent inventory.
+Liveness check + inventário de agentes.
 
 ```json
 { "status": "ok", "agents": ["prometheus", "arquimedes", "atlas"] }
@@ -15,104 +17,117 @@ Liveness check + agent inventory.
 
 ### `GET /agents`
 
-Metadata for every registered agent (used by the UI to render tabs and
-example prompts).
+Metadados de cada agente registrado (a UI React consome para renderizar
+as abas e os exemplos).
 
 ```json
 {
-  "prometheus": {
-    "name": "Prometheus",
-    "description": "AI governance and data-privacy compliance specialist...",
-    "lang": "en",
-    "examples": ["What are the GDPR penalties for a data breach?", "..."]
+  "arquimedes": {
+    "name": "Arquimedes",
+    "description": "Tutor adaptativo de matemática para ML — álgebra linear, cálculo, probabilidade e estatística. RAG sobre Strang/Deisenroth/OpenStax; derivações passo a passo.",
+    "lang": "pt-BR",
+    "examples": [
+      "Explique autovetores com uma analogia geométrica e cite o livro-texto.",
+      "Derive passo a passo o gradiente da função de perda MSE.",
+      "..."
+    ]
   },
-  "arquimedes": { ... },
-  "atlas":      { ... }
+  "prometheus": { "...": "..." },
+  "atlas":      { "...": "..." }
 }
 ```
 
 ### `GET /models`
 
-Available LLM models for the picker.
+Modelos disponíveis no seletor da UI.
 
 ```json
 {
   "default": "qwen/qwen3-235b-a22b",
   "available": [
-    { "id": "qwen/qwen3-235b-a22b", "name": "Qwen3 235B (OpenRouter)", "speed": "fast" },
-    { "id": "deepseek/deepseek-chat-v3-0324", "name": "DeepSeek V3 (OpenRouter)", "speed": "medium" },
-    { "id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Google)", "speed": "fast" },
-    { "id": "gpt-4o-mini", "name": "GPT-4o Mini (OpenAI)", "speed": "fast" },
-    { "id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4 (Anthropic)", "speed": "medium" }
+    { "id": "qwen/qwen3-235b-a22b",         "name": "Qwen3 235B (OpenRouter)",  "speed": "fast" },
+    { "id": "deepseek/deepseek-chat-v3-0324","name": "DeepSeek V3 (OpenRouter)","speed": "medium" },
+    { "id": "gemini-2.0-flash",              "name": "Gemini 2.0 Flash (Google)","speed": "fast" },
+    { "id": "gpt-4o-mini",                   "name": "GPT-4o Mini (OpenAI)",    "speed": "fast" },
+    { "id": "claude-sonnet-4-20250514",      "name": "Claude Sonnet 4 (Anthropic)","speed": "medium" },
+    { "id": "hf/Qwen/Qwen2.5-7B-Instruct",   "name": "Qwen2.5 7B (HF Inference)","speed": "medium" }
   ]
 }
 ```
 
 ### `POST /chat/{agent_name}`
 
-Blocking chat — returns the full response when the graph finishes.
+Chat bloqueante — retorna a resposta completa quando o graph termina.
 
-**Request body** (`ChatRequest`):
+**Body** (`ChatRequest`):
 ```json
 {
-  "message": "What are the GDPR penalties for a data breach?",
+  "message": "Explique autovetores com uma analogia geométrica.",
   "thread_id": "optional-uuid",
   "user_id": "default-user",
-  "model_name": "qwen/qwen3-235b-a22b"
+  "model_name": "openai/gpt-4o-mini"
 }
 ```
 
 **Response** (`ChatResponse`):
 ```json
 {
-  "response": "Under GDPR, fines for a data breach...",
+  "response": "Um autovetor é uma direção que a transformação...",
   "thread_id": "generated-or-passed-through",
-  "agent": "prometheus"
+  "agent": "arquimedes"
 }
 ```
 
-**404** if `agent_name` not in `["prometheus", "arquimedes", "atlas"]`.
+❌ **404** se `agent_name` não estiver em `["prometheus","arquimedes","atlas"]`.
 
 ### `POST /chat/{agent_name}/stream`
 
-Same body as `/chat/{agent_name}`. Returns Server-Sent Events.
+Mesmo body; retorna Server-Sent Events.
 
-**Event types**:
+**Tipos de eventos:**
 
-| event | data |
-|---|---|
-| `metadata` | `{"thread_id": "...", "agent": "..."}` (sent first) |
-| `token` | a string fragment of the LLM response |
-| `tool_start` | tool name about to execute |
-| `tool_end` | tool name that just finished |
-| `done` | empty payload — stream complete |
+| 📌 event | 📦 data | 💡 quando dispara |
+|---|---|---|
+| `metadata` | `{"thread_id":"...","agent":"..."}` | primeiro evento, sempre |
+| `token` | fragmento de texto do LLM | só tokens do nó `assistant` (memória e sumarização são filtrados) |
+| `tool_start` | nome da tool prestes a executar | antes do `ToolNode` rodar |
+| `tool_end` | nome da tool que terminou | depois do `ToolNode` |
+| `done` | vazio | fim do stream |
 
-**Curl example**:
+**Curl de exemplo:**
 ```bash
-curl -N -X POST http://localhost:8000/chat/prometheus/stream \
+curl -N -X POST http://localhost:8000/chat/arquimedes/stream \
   -H "Content-Type: application/json" \
-  -d '{"message":"What are the GDPR penalties for a data breach?","thread_id":"demo-1"}'
+  -d '{"message":"Explique autovetores geometricamente.","thread_id":"demo-1"}'
 ```
 
-## Threading & memory
+---
 
-- **`thread_id`** scopes the conversation — pass the same value across
-  requests to maintain history. Omit it on first turn and the server
-  generates a UUID (returned in the response / first `metadata` event).
-- **`user_id`** scopes the long-term Store namespace. Two different
-  threads with the same `user_id` will share the agent's user profile
-  (Prometheus compliance facts, Arquimedes student level).
+## 🧵 Threading e memória
 
-## Static frontend
+- 🧵 **`thread_id`** — escopo da conversa. Passe o mesmo valor entre
+  requisições para manter histórico. Omita no primeiro turno e o
+  servidor gera um UUID (retornado no primeiro evento `metadata` ou
+  no body de `/chat/{agent_name}`).
+- 👤 **`user_id`** — escopo do Store de longo prazo. Dois threads
+  diferentes com o mesmo `user_id` compartilham o perfil do usuário
+  (fatos de compliance em Prometheus, nível do aluno em Arquimedes).
 
-If `frontend/dist/` exists, the API server also serves the React SPA:
-- `/assets/*` — compiled JS/CSS bundles
-- any other path → `index.html` (SPA fallback)
+---
 
-API route prefixes (`health`, `agents`, `models`, `chat`, `docs`,
-`redoc`, `openapi.json`) are excluded from the fallback so they keep
-their FastAPI behavior.
+## 🎨 Frontend estático
 
-## CORS
+Se `frontend/dist/` existir, o servidor também serve a SPA React:
 
-Wide-open in dev: `allow_origins=["*"]`. Tighten for prod.
+- `GET /assets/*` → bundles JS/CSS compilados
+- qualquer outro path → `index.html` (fallback SPA)
+
+Prefixos de API (`health`, `agents`, `models`, `chat`, `docs`,
+`redoc`, `openapi.json`) são excluídos do fallback para preservar o
+comportamento FastAPI.
+
+---
+
+## 🔓 CORS
+
+Aberto em dev: `allow_origins=["*"]`. **Restringir em produção.**

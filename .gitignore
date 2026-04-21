@@ -1,20 +1,41 @@
+# Secrets
 .env
+.env.*
+!.env.example
+
+# Python build artefacts
 __pycache__/
 *.pyc
 *.pyo
-*.sqlite
-*.db
-.venv/
-venv/
-dist/
 *.egg-info/
+.pytest_cache/
 .mypy_cache/
 .ruff_cache/
-node_modules/
+
+# Virtual environments
+.venv/
+venv/
+
+# Build output
+dist/
 frontend/dist/
-.pytest_cache/
 
 # Local persistent data
 data/
+*.sqlite
 *.sqlite3
+*.db
+
+# Node
+node_modules/
+
+# TypeScript / Vite
+*.tsbuildinfo
 frontend/test-results/
+frontend/playwright-report/
+
+# OS / editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp

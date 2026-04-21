@@ -309,7 +309,7 @@ def explain_concept(concept: str, level: str, use_analogy: bool = True) -> str:
         f"Level: {level}\n"
         f"Approach: {style}"
         f"{analogy}\n\n"
-        f"(The tutor Archimedes will elaborate the full explanation using this guidance.)"
+        f"(O tutor Arquimedes desenvolverá a explicação completa seguindo essa orientação.)"
     )
 
 

@@ -43,7 +43,7 @@ def evaluate(model_id: str, adapter_id: str | None, limit: int = 50) -> dict:
     details: list[dict] = []
     for row in ds:
         prompt = (
-            "You are Archimedes, a math-for-ML tutor. Solve the problem "
+            "You are Arquimedes, a math-for-ML tutor. Solve the problem "
             "step by step and end with a line '#### <answer>'.\n\n"
             f"Problem: {row['question']}\n\nSolution:"
         )
