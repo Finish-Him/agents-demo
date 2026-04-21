@@ -1,10 +1,30 @@
 """Archimedes — Math-for-ML adaptive tutor.
 
-LangGraph ReAct agent with:
-- LCEL assistant chain (prompt | llm.bind_tools)
-- Structured memory extraction via Pydantic
-- ToolNode loop with tools_condition
-- Profile-aware system prompt (long-term Store) + summarization
+LangGraph topology:
+
+    START
+      ↓  (heuristic entry router)
+    rag_retrieve ──┐
+                   ↓
+                assistant ←──────────── tools
+                   │                      ↑
+            tools_condition ──────────────┘
+                   │
+                   ↓  (no tool calls)
+               write_memory
+                   │
+               should_continue
+                ↙          ↘
+     summarize_conversation   END
+                   ↓
+                  END
+
+- LCEL ``build_assistant_chain`` invoked by the assistant node.
+- Structured student-fact extraction in write_memory (Pydantic schema).
+- Semantic-memory retrieval in assistant (queries Store with the last
+  user message).
+- rag_retrieve proactively injects textbook passages when the learner's
+  query looks citation-seeking (heuristic router).
 """
 
 from typing import Literal
@@ -20,6 +40,8 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.store.base import BaseStore
 
 from arquimedes.chains import build_assistant_chain, build_memory_extractor_chain
+from arquimedes.rag.retrieval import format_passages, search as rag_search
+from arquimedes.routing import entry_route, last_human_content
 from arquimedes.tools import all_tools
 from shared.configuration import Configuration
 from shared.llm import get_llm
@@ -29,35 +51,52 @@ from shared.memory import get_checkpointer, get_store
 # ── State ──────────────────────────────────────────────────────────────
 class State(MessagesState):
     summary: str
+    retrieved_context: str
 
 
 # ── Nodes ──────────────────────────────────────────────────────────────
+def rag_retrieve(state: State) -> dict:
+    """Proactively pull textbook passages before the assistant runs."""
+    query = last_human_content(state["messages"])
+    if not query:
+        return {}
+    try:
+        docs = rag_search(query, k=4)
+    except Exception:
+        return {}
+    if not docs:
+        return {}
+    return {"retrieved_context": format_passages(docs)}
+
+
 def assistant(state: State, config: RunnableConfig, store: BaseStore):
-    """Invoke LLM with tools via an LCEL chain; inject student profile from Store."""
+    """Invoke LLM with tools via an LCEL chain; inject profile + retrieved context."""
     conf = Configuration.from_runnable_config(config)
 
     # Retrieve student profile from Store. When the store supports semantic
     # search (SemanticStore), query it with the latest user message so only
     # relevant facts are injected. Fall back to prefix scan for InMemoryStore.
-    user_id = conf.user_id
-    namespace = ("student_profile", user_id)
-    last_user = ""
-    for m in reversed(state["messages"]):
-        if getattr(m, "type", None) == "human":
-            last_user = getattr(m, "content", "") or ""
-            break
+    namespace = ("student_profile", conf.user_id)
+    query = last_human_content(state["messages"])
     try:
-        existing = store.search(namespace, query=last_user or None, limit=5)
+        existing = store.search(namespace, query=query or None, limit=5)
     except TypeError:
         existing = store.search(namespace)
     profile_ctx = "\n".join(m.value.get("content", "") for m in existing)
 
     summary = state.get("summary", "")
+    retrieved = state.get("retrieved_context", "")
+
     extra_parts: list[str] = []
     if profile_ctx:
         extra_parts.append(f"Student profile from previous sessions:\n{profile_ctx}")
     if summary:
         extra_parts.append(f"Conversation summary so far:\n{summary}")
+    if retrieved:
+        extra_parts.append(
+            "Retrieved passages from the math knowledge base — quote them "
+            "when relevant and cite the source:\n" + retrieved
+        )
     extra_context = "\n\n".join(extra_parts)
 
     chain = build_assistant_chain(model=conf.model_name, extra_context=extra_context)
@@ -70,8 +109,15 @@ def write_memory(state: State, config: RunnableConfig, store: BaseStore):
     conf = Configuration.from_runnable_config(config)
     namespace = ("student_profile", conf.user_id)
 
-    # Only look at the last 6 messages to keep extraction cheap.
-    recent = state["messages"][-6:]
+    # Keep only human turns + final AI turns (drop ToolMessage + tool_calls pairs)
+    # so the extractor prompt doesn't send orphan tool messages to providers
+    # that validate tool_calls/tool_result pairing.
+    clean = [
+        m for m in state["messages"][-12:]
+        if getattr(m, "type", None) in ("human", "ai")
+        and not getattr(m, "tool_calls", None)
+    ]
+    recent = clean[-6:]
     if not recent:
         return {}
 
@@ -79,8 +125,6 @@ def write_memory(state: State, config: RunnableConfig, store: BaseStore):
         chain = build_memory_extractor_chain(model=conf.model_name)
         update = chain.invoke({"messages": recent})
     except Exception:
-        # Some models don't support structured output reliably. Fall back
-        # to a plain extractor that stores the raw summary string.
         llm = get_llm(model=conf.model_name)
         extract_prompt = (
             "Summarize what we learned about the student in one paragraph. "
@@ -94,8 +138,7 @@ def write_memory(state: State, config: RunnableConfig, store: BaseStore):
     if not update.has_new_information or not update.facts:
         return {}
 
-    # Persist each fact as its own record (prepares Phase 3 semantic store).
-    for i, fact in enumerate(update.facts):
+    for fact in update.facts:
         fact_id = f"{fact.topic}:{fact.level}"
         store.put(
             namespace,
@@ -144,12 +187,19 @@ def summarize_conversation(state: State, config: RunnableConfig):
 # ── Graph ──────────────────────────────────────────────────────────────
 builder = StateGraph(State, config_schema=Configuration)
 
+builder.add_node("rag_retrieve", rag_retrieve)
 builder.add_node("assistant", assistant)
 builder.add_node("tools", ToolNode(all_tools))
 builder.add_node("write_memory", write_memory)
 builder.add_node("summarize_conversation", summarize_conversation)
 
-builder.add_edge(START, "assistant")
+# Entry router: cheap keyword heuristic → rag_retrieve vs. assistant.
+builder.add_conditional_edges(
+    START,
+    entry_route,
+    {"rag_retrieve": "rag_retrieve", "assistant": "assistant"},
+)
+builder.add_edge("rag_retrieve", "assistant")
 builder.add_conditional_edges(
     "assistant",
     tools_condition,

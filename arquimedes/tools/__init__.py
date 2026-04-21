@@ -5,6 +5,7 @@ fine-tuned-solver tools. Every new tool module appends to ``all_tools``
 so both the LangGraph agent and the MCP server pick them up automatically.
 """
 
+from arquimedes.tools.derivation import derivation_tools, step_by_step_derive
 from arquimedes.tools.rag_tool import rag_tools, search_knowledge_base
 from arquimedes.tools.teaching import (
     assess_level,
@@ -20,10 +21,12 @@ __all__ = [
     "find_resources",
     "generate_exercise",
     "search_knowledge_base",
+    "step_by_step_derive",
     "teaching_tools",
     "rag_tools",
+    "derivation_tools",
     "all_tools",
 ]
 
 # Central registry — every new tool module appends here.
-all_tools = list(teaching_tools) + list(rag_tools)
+all_tools = list(teaching_tools) + list(rag_tools) + list(derivation_tools)

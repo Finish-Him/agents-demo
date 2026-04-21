@@ -53,10 +53,9 @@ def get_checkpointer():
     sqlite_path = os.getenv("SQLITE_CHECKPOINT_PATH")
     if sqlite_path and _SQLITE_AVAILABLE:
         os.makedirs(os.path.dirname(os.path.abspath(sqlite_path)), exist_ok=True)
-        # SqliteSaver.from_conn_string is a context manager; we enter it once
-        # and keep the saver alive for the lifetime of the process.
-        ctx = SqliteSaver.from_conn_string(sqlite_path)
-        _checkpointer = ctx.__enter__()
+        import sqlite3
+        conn = sqlite3.connect(sqlite_path, check_same_thread=False)
+        _checkpointer = SqliteSaver(conn)
         return _checkpointer
 
     _checkpointer = MemorySaver()
