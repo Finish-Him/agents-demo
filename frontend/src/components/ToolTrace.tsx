@@ -4,6 +4,7 @@ import {
   BookOpen,
   Brain,
   Calculator,
+  Cpu,
   GraduationCap,
   Library,
   LineChart,
@@ -26,6 +27,7 @@ const TOOL_ICON: Record<string, ReactNode> = {
   step_by_step_derive: <Sigma className="w-3 h-3" />,
   solve_symbolic: <Calculator className="w-3 h-3" />,
   plot_function: <LineChart className="w-3 h-3" />,
+  solve_with_finetuned: <Cpu className="w-3 h-3" />,
 };
 
 const TOOL_COLOR: Record<string, string> = {
@@ -37,6 +39,7 @@ const TOOL_COLOR: Record<string, string> = {
   step_by_step_derive: 'text-violet-400 bg-violet-500/10 border-violet-500/20',
   solve_symbolic: 'text-lime-400 bg-lime-500/10 border-lime-500/20',
   plot_function: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+  solve_with_finetuned: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
 };
 
 function formatDuration(ms: number | undefined): string {
