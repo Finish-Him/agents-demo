@@ -65,6 +65,7 @@ AVAILABLE_MODELS = [
     {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Google)", "speed": "fast"},
     {"id": "gpt-4o-mini", "name": "GPT-4o Mini (OpenAI)", "speed": "fast"},
     {"id": "claude-sonnet-4-20250514", "name": "Claude Sonnet 4 (Anthropic)", "speed": "medium"},
+    {"id": "hf/Qwen/Qwen2.5-7B-Instruct", "name": "Qwen2.5 7B (HF Inference)", "speed": "medium"},
 ]
 
 

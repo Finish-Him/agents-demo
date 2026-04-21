@@ -23,6 +23,9 @@ class TestDetectProvider:
             ("anthropic/claude-3-haiku", "anthropic"),
             ("gemini-2.0-flash", "google"),
             ("google/gemini-pro", "google"),
+            ("hf/Qwen/Qwen2.5-7B-Instruct", "huggingface"),
+            ("huggingface/meta-llama/Llama-3.2-3B-Instruct", "huggingface"),
+            ("azure/gpt-4o-deployment", "azure"),
             ("deepseek/deepseek-chat-v3-0324", "openrouter"),
             ("qwen/qwen3-235b-a22b", "openrouter"),
             ("meta-llama/llama-3-70b", "openrouter"),
@@ -124,3 +127,19 @@ class TestGetLLM:
     def test_temperature_passed(self):
         llm = get_llm("gpt-4o-mini", temperature=0.7)
         assert llm.temperature == 0.7
+
+    @patch.dict(os.environ, {
+        "AZURE_OPENAI_ENDPOINT": "https://example.openai.azure.com/",
+        "AZURE_OPENAI_API_KEY": "test-azure-key",
+        "AZURE_OPENAI_API_VERSION": "2024-08-01-preview",
+    })
+    def test_azure_provider(self):
+        from langchain_openai import AzureChatOpenAI
+        llm = get_llm("azure/gpt-4o-deployment")
+        assert isinstance(llm, AzureChatOpenAI)
+
+    @patch.dict(os.environ, {"HF_TOKEN": "hf_test_token"})
+    def test_huggingface_provider(self):
+        from langchain_huggingface import ChatHuggingFace
+        llm = get_llm("hf/Qwen/Qwen2.5-7B-Instruct", temperature=0.5)
+        assert isinstance(llm, ChatHuggingFace)
