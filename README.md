@@ -23,8 +23,14 @@
 | Agent | Domain | Tools | Key Patterns |
 |-------|--------|-------|--------------|
 | **Prometheus** | AI governance & data-privacy (GDPR, CCPA, EU AI Act) | 5 — regulations, penalties, risk levels, checklists, deadlines | ReAct + Summarization + Long-term Memory |
-| **Archimedes** | Adaptive AI tutor (ML, Python, deep learning, agents) | 4 — assess level, generate exercises, explain concepts, resources | ReAct + Student Profile Memory + Adaptive Routing |
+| **Archimedes** | Math-for-ML tutor (linear algebra, calculus, probability, statistics) | **9** — assess, exercise, explain, resources, textbook RAG, SymPy, plot, derivation subgraph, fine-tuned solver | Router + RAG retrieval node + LCEL/Pydantic + semantic memory + MCP server + QLoRA fine-tuning |
 | **Atlas** | Tech stack consultant (GitHub + HuggingFace APIs) | 4 — search GitHub repos, HF Spaces, project analyzer, tech recommender | ReAct + External API Tools |
+
+Archimedes is the headline agent — it demonstrates all nine AI-engineering
+concepts (LangChain, LangGraph, RAG, Chunks, Fine-tuning, Tools, MCP,
+HuggingFace, Memory) end-to-end. See [`docs/arquimedes.md`](docs/arquimedes.md)
+for the deep-dive and [`docs/interview-talking-points.md`](docs/interview-talking-points.md)
+for the pitch.
 
 ## Architecture
 
