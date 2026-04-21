@@ -30,6 +30,13 @@ except Exception:  # pragma: no cover
     _SQLITE_AVAILABLE = False
 
 try:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+    import aiosqlite  # noqa: F401
+    _AIOSQLITE_AVAILABLE = True
+except Exception:  # pragma: no cover
+    _AIOSQLITE_AVAILABLE = False
+
+try:
     from shared.semantic_store import SemanticStore
     _SEMANTIC_AVAILABLE = True
 except Exception:  # pragma: no cover
@@ -51,8 +58,26 @@ def get_checkpointer():
         return _checkpointer
 
     sqlite_path = os.getenv("SQLITE_CHECKPOINT_PATH")
+    # AsyncSqliteSaver needs a running event loop at construction time, so we
+    # only pick it when an event loop is already active (e.g. inside uvicorn's
+    # startup hook). At module-import time we fall back to MemorySaver.
+    if sqlite_path and _AIOSQLITE_AVAILABLE:
+        try:
+            import asyncio
+            asyncio.get_running_loop()
+        except RuntimeError:
+            loop_running = False
+        else:
+            loop_running = True
+        if loop_running:
+            os.makedirs(os.path.dirname(os.path.abspath(sqlite_path)) or ".", exist_ok=True)
+            import aiosqlite
+            conn = aiosqlite.connect(sqlite_path, check_same_thread=False)
+            _checkpointer = AsyncSqliteSaver(conn)
+            return _checkpointer
     if sqlite_path and _SQLITE_AVAILABLE:
-        os.makedirs(os.path.dirname(os.path.abspath(sqlite_path)), exist_ok=True)
+        # Sync path only — tests / scripts / Gradio.
+        os.makedirs(os.path.dirname(os.path.abspath(sqlite_path)) or ".", exist_ok=True)
         import sqlite3
         conn = sqlite3.connect(sqlite_path, check_same_thread=False)
         _checkpointer = SqliteSaver(conn)

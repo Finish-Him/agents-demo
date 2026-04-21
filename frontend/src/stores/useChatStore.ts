@@ -3,12 +3,18 @@ import { streamChat, type AgentInfo, type ModelInfo } from '@/lib/api';
 
 /* ── Types ─────────────────────────────────────────────────────────── */
 
+export interface ToolInvocation {
+  name: string;
+  startedAt: number;
+  endedAt?: number;
+}
+
 export interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
-  toolCall?: string; // e.g. "lookup_regulation"
+  toolCalls?: ToolInvocation[];
 }
 
 interface ChatState {
@@ -46,7 +52,7 @@ function uid(): string {
 
 export const useChatStore = create<ChatState>((set, get) => ({
   messages: [],
-  activeAgent: 'prometheus',
+  activeAgent: 'arquimedes',
   selectedModel: '',
   threadId: uid(),
   userId: 'demo-user',
@@ -99,6 +105,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
+      toolCalls: [],
     };
 
     set((s) => ({
@@ -126,10 +133,36 @@ export const useChatStore = create<ChatState>((set, get) => ({
           }));
         },
         onToolStart: (name) => {
-          set({ activeTool: name });
+          set((s) => ({
+            activeTool: name,
+            messages: s.messages.map((m) =>
+              m.id === assistantId
+                ? {
+                    ...m,
+                    toolCalls: [
+                      ...(m.toolCalls ?? []),
+                      { name, startedAt: Date.now() },
+                    ],
+                  }
+                : m,
+            ),
+          }));
         },
-        onToolEnd: () => {
-          set({ activeTool: null });
+        onToolEnd: (name) => {
+          set((s) => ({
+            activeTool: null,
+            messages: s.messages.map((m) => {
+              if (m.id !== assistantId) return m;
+              const calls = [...(m.toolCalls ?? [])];
+              for (let i = calls.length - 1; i >= 0; i--) {
+                if (calls[i].name === name && calls[i].endedAt === undefined) {
+                  calls[i] = { ...calls[i], endedAt: Date.now() };
+                  break;
+                }
+              }
+              return { ...m, toolCalls: calls };
+            }),
+          }));
         },
         onMetadata: (data) => {
           set({ threadId: data.thread_id });
